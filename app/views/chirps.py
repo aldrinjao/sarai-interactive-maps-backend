@@ -174,18 +174,22 @@ def index(start_date, end_date):
   image_collection = ee.ImageCollection('UCSB-CHG/CHIRPS/PENTAD')
   image = image_collection.filterDate(start_date, end_date)
 
+  sld_intervals = '<RasterSymbolizer>' + '<ColorMap  type="intervals" extended="false" >' + '<ColorMapEntry color="#E0E0E0" quantity="50" label="50"/>' + '<ColorMapEntry color="#CAE5FE" quantity="100" label="50-100" />' + '<ColorMapEntry color="#6FBEFD" quantity="200" label="101-200" />' + '<ColorMapEntry color="#4662FD" quantity="300" label="201-300" />' + '<ColorMapEntry color="#3046A5" quantity="400" label="301-400" />' + '<ColorMapEntry color="#1C2371" quantity="500" label="401-1000" />' + '<ColorMapEntry color="#000000" quantity="1200" label="501-1000" />' + '</ColorMap>' + '</RasterSymbolizer>'
+
+
   if request.args.get('place') is not None:
     image = image.map(rainfall_clipper)
 
   new_image = image.median().clip(geometry)
+  new_image.sldStyle(sld_intervals)
 
   try:
     rainfall = new_image.select('precipitation')
     visualization_styles = {
       'min': 0,
-      'max': 100,
-      'opacity': 0.4,
-      'palette': 'ff0000, ff6900, ffff00, 62ff00, 00ff00'
+      'max': 1200,
+      'opacity': 0.8,
+      'palette': 'E0E0E0, CAE5FE, 6FBEFD, 4662FD,1C2371,000000'
     }
 
     map_object = rainfall.getMapId(visualization_styles)

@@ -23,14 +23,15 @@ def get_province_geometry(province):
   return province_ft.filter(prov_filter).geometry()
 
 def ndvi_mapper(image):
+  print "mapper"
   hansen_image = ee.Image('UMD/hansen/global_forest_change_2013')
   data = hansen_image.select('datamask')
   mask = data.eq(1)
-
   return image.updateMask(mask)
 
 def time_series_mapper(item):
   prefix = 'MOD13Q1_005_'
+
   prefixed_date = str(item[0])
   date = ''
 
@@ -73,12 +74,12 @@ def query_time_series_data(lat, lng, start_date, end_date):
     # create a geometry point instance for cropping data later
     point = ee.Geometry.Point(float(lng), float(lat))
 
+
     # use the MODIS satellite data (NDVI)
-    modis = ee.ImageCollection('MODIS/MOD13Q1').select('NDVI')
+    modis = ee.ImageCollection('MODIS/006/MOD13Q1').select('NDVI')
 
     # check first if the resulting date filter yields greater than 0 features
     filtering_result = modis.filterDate(start_date, end_date)
-
     if len(filtering_result.getInfo()['features']) == 0:
       return None
 
@@ -98,6 +99,7 @@ def query_doy_data(lat, lng, start_date, end_date):
   processed = cache.get(cache_key)
 
   # perform query processing when its not on the cache
+  print "doy"
   if processed is None:
     query_result = query_time_series_data(lat, lng, start_date, end_date)
 
@@ -141,7 +143,8 @@ def date_and_range(start_date, end_date):
   # performing filterBounds will not work on this since this is a global composite
   # see similar issue with discussion:
   # <https://groups.google.com/forum/#!searchin/google-earth-engine-developers/filterbounds%7Csort:relevance/google-earth-engine-developers/__3vYdhh22k/wIE-INHXBQAJ>
-  image_collection = ee.ImageCollection('LANDSAT/LC8_L1T_8DAY_NDVI')
+  image_collection = ee.ImageCollection('MODIS/006/MOD13A1').select('NDVI')
+  
   # filtered = image_collection.filterDate(start_date, end_date).filterBounds(geometry).map(ndvi_mapper)
   filtered = image_collection.filterDate(start_date, end_date).map(ndvi_mapper)
 
@@ -152,14 +155,15 @@ def date_and_range(start_date, end_date):
   else:
     filtered = filtered.clip(geometry)
 
-  ndvi = filtered
 
+  
+  ndvi = filtered
   map_parameters = {
     'min': 0,
-    'max': 1,
-    'palette': 'FFFFFF, CE7E45, FCD163, 66A000, 207401, 056201, 004C00, 023B01, 012E01, 011301'
+    'max': 9000,
+    'palette': 'FFFFFF, CE7E45, DF923D,F1B555, FCD163, 99B718, 74A901, 66A000, 529400, 3E8601, 207401, 056201, 004C00, 023B01, 012E01, 011D01, 011301'
   }
-
+  # 
   map_object = ndvi.getMapId(map_parameters)
   map_id = map_object['mapid']
   map_token = map_object['token']
@@ -177,6 +181,7 @@ def date_and_range(start_date, end_date):
 @cross_origin()
 @gzipped
 def time_series(lat, lng, start_date, end_date):
+  
   query_result = query_time_series_data(lat, lng, start_date, end_date)
   output_format = 'json'
   available_formats = ['json', 'csv']
