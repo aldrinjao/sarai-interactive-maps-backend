@@ -77,7 +77,7 @@ def query_daily_rainfall_data(lat, lng, start_date, end_date):
     # create a geometry point instance for cropping data later
     point = ee.Geometry.Point(float(lng), float(lat))
 
-    image_collection = ee.ImageCollection('UCSB-CHG/CHIRPS/PENTAD')
+    image_collection = ee.ImageCollection('UCSB-CHG/CHIRPS/DAILY')
     filtering_result = image_collection.filterDate(start_date, end_date)
 
     # check if there are features retrieved
@@ -110,7 +110,7 @@ def query_cumulative_rainfall_data(lat, lng, start_date, end_date):
     # create a geometry point instance for cropping data later
     point = ee.Geometry.Point(float(lng), float(lat))
 
-    image_collection = ee.ImageCollection('UCSB-CHG/CHIRPS/PENTAD')
+    image_collection = ee.ImageCollection('UCSB-CHG/CHIRPS/DAILY')
     filtering_result = image_collection.filterDate(start_date, end_date)
 
     # check if there are features retrieved
@@ -171,28 +171,40 @@ def index(start_date, end_date):
     True
   )
 
-  image_collection = ee.ImageCollection('UCSB-CHG/CHIRPS/PENTAD')
+
+
+# 
+  # start_date_array = start_date.split('-')
+  # end_date_array = end_date.split('-')
+
+
+  image_collection = ee.ImageCollection('UCSB-CHG/CHIRPS/DAILY')
+  
+  # image = image_collection.filter(ee.Filter.calendarRange(int(start_date_array[0]),int(end_date_array[0]),'year'))
+  # image = image_collection.filter(ee.Filter.calendarRange(int(start_date_array[1]),int(end_date_array[1]),'year'))
+  # print image
+
+  
   image = image_collection.filterDate(start_date, end_date)
 
-  sld_intervals = '<RasterSymbolizer>' + '<ColorMap  type="intervals" extended="false" >' + '<ColorMapEntry color="#E0E0E0" quantity="50" label="50"/>' + '<ColorMapEntry color="#CAE5FE" quantity="100" label="50-100" />' + '<ColorMapEntry color="#6FBEFD" quantity="200" label="101-200" />' + '<ColorMapEntry color="#4662FD" quantity="300" label="201-300" />' + '<ColorMapEntry color="#3046A5" quantity="400" label="301-400" />' + '<ColorMapEntry color="#1C2371" quantity="500" label="401-1000" />' + '<ColorMapEntry color="#000000" quantity="1200" label="501-1000" />' + '</ColorMap>' + '</RasterSymbolizer>'
-
+  sld_intervals = '<RasterSymbolizer>' + '<ColorMap  type="intervals" extended="false" >' + '<ColorMapEntry color="#FFFFFF" quantity="0" label="0"/>' +  '<ColorMapEntry color="#E0E0E0" quantity="50" label="50"/>' +  '<ColorMapEntry color="#CAE5FE" quantity="100" label="100" />' +  '<ColorMapEntry color="#6FBEFD" quantity="200" label="200 " />' +  '<ColorMapEntry color="#4662FD" quantity="300" label="300" />' +  '<ColorMapEntry color="#1C2371" quantity="400" label="400" />' +  '<ColorMapEntry color="#0000FF" quantity="500" label="500" />' + '<ColorMapEntry color="#000000" quantity="3000" label="3000" />' +'</ColorMap>' + '</RasterSymbolizer>'
 
   if request.args.get('place') is not None:
     image = image.map(rainfall_clipper)
 
-  new_image = image.median().clip(geometry)
+  new_image = image.sum().clip(geometry).select('precipitation')
   new_image.sldStyle(sld_intervals)
 
   try:
-    rainfall = new_image.select('precipitation')
+    rainfall = new_image.sldStyle(sld_intervals)
     visualization_styles = {
       'min': 0,
-      'max': 1200,
+      'max': 500,
       'opacity': 0.8,
       'palette': 'E0E0E0, CAE5FE, 6FBEFD, 4662FD,1C2371,000000'
     }
 
-    map_object = rainfall.getMapId(visualization_styles)
+    map_object = rainfall.getMapId()
     map_id = map_object['mapid']
     map_token = map_object['token']
 

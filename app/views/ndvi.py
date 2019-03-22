@@ -23,25 +23,18 @@ def get_province_geometry(province):
   return province_ft.filter(prov_filter).geometry()
 
 def ndvi_mapper(image):
-  print "mapper"
   hansen_image = ee.Image('UMD/hansen/global_forest_change_2013')
   data = hansen_image.select('datamask')
   mask = data.eq(1)
   return image.updateMask(mask)
 
 def time_series_mapper(item):
-  prefix = 'MOD13Q1_005_'
+  prefix = ''
 
   prefixed_date = str(item[0])
-  date = ''
-
-  result = prefixed_date.startswith(prefix)
-
-  if result is True:
-    date = prefixed_date[len(prefix):].replace('_', '-')
+  date = prefixed_date.replace('_', '-')
 
   ndvi_value = float(item[4]) / 10000
-
   return {
     'time': date,
     'ndvi': ndvi_value
@@ -85,12 +78,10 @@ def query_time_series_data(lat, lng, start_date, end_date):
 
     result = filtering_result.getRegion(point, 250).getInfo()
     result.pop(0)
-
     final_result = map(time_series_mapper, result)
 
     # cache it for 12 hours
     cache.set(cache_key, final_result, timeout=43200)
-
   return final_result
 
 def query_doy_data(lat, lng, start_date, end_date):
